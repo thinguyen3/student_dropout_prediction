@@ -1,3 +1,5 @@
+[![](https://img.shields.io/badge/Run_in_Google_Colab-EE4C2C?logo=GoogleColab)](https://colab.research.google.com/drive/1bxXKo5suz7yBmiH2ol0DJPokOOjafoz5)
+
 # STUDENT DROPOUT PREDICTION
 
 ## Introduction
