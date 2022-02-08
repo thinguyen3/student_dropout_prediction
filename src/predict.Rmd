@@ -54,7 +54,7 @@ The first step was to import and clean the data, in order to determine that ther
 ```{r Import Data}
 # Import Student Static Data
 getwd()
-setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Student Static Data")
+setwd("../data/Student Static Data")
 StaticFall2011 <- read.csv("Fall 2011_ST.csv", header = T)
 StaticFall2012 <- read.csv("Fall 2012.csv", header = T)
 StaticFall2013 <- read.csv("Fall 2013.csv", header = T)
@@ -74,7 +74,7 @@ gc()
 
 # Import Student Progress Data
 getwd()
-setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Student Progress Data")
+setwd("../Student Progress Data")
 ProgressFall2011 <- read.csv("Fall 2011_SP.csv",header = T)
 ProgressFall2012 <- read.csv("Fall 2012_SP.csv",header = T)
 ProgressFall2013 <- read.csv("Fall 2013_SP.csv",header = T)
@@ -125,17 +125,17 @@ gc()
 
 # Import Student Financial Aid Data
 getwd()
-setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Student Financial Aid Data")
+setwd("../Student Financial Aid Data")
 FinancialAid <- read.csv("2011-2017_Cohorts_Financial_Aid_and_Fafsa_Data.csv",header = T)
 
 # Import Dropout Train Labels
 getwd()
-setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout")
+setwd("../Dropout")
 TrainLabels <- read.csv("DropoutTrainLabels.csv",header = T)
 
 # Import Test Data
 getwd()
-setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Test Data")
+setwd("../Test Data")
 TestData <- read.csv("TestIDs.csv",header = T)
 
 ```
