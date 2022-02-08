@@ -1,0 +1,388 @@
+---
+title: "STUDENT DROPOUT PREDICTION"
+author: "Thi Diem My Nguyen
+        School of Business
+        New Jersey city University
+        tnguyen9@njcu.edu"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+##Set defaults for all code chunks in here. Note the defaults can be overridden at the individual code chunk level
+knitr::opts_chunk$set(echo = TRUE)  ## Show the code in the report
+knitr::opts_chunk$set(warning = FALSE)  ## Do not show warnings
+knitr::opts_chunk$set(message = FALSE) ## Do not show any messages.Useful and recommended because some commands spew hundreds of pages of messages that are not needed in a report
+```
+
+```{r load library}
+memory.size()
+memory.limit()
+memory.limit(size=500000) 
+set.seed(3333)
+library(dplyr)
+library(Hmisc)
+library(ggplot2)
+library(MASS)
+library(imputeTS)
+
+```
+
+## Abstract
+Dropout remains a persistent challenge within college education. In this research, I present a case study on automatically detecting whether a student is at-risk of dropout at New Jersey City University.I trained several machine learning algorithms in order to come up with the best prediction model of student dropout from data on NJCU Student Static Data, NJCU Student Progress Data, and NJCU Financial Aid Data.
+
+## Introduction
+Teachers and school administrators have striven to reduce dropout for quite some time, but it continues to persist in schools as a problem through the present day.Dropping out of colleges is considered not just a serious educational problem but also a severe social problem, especially in recent decades when technology and societal developments have rendered more and more people without at least a college degree less likely to find a job. 
+It is critical to understand the causes and recognize the signs, in this project I will aim to accurately predict the probability of a student dropping out from school. I will measure prediction accuracy and analyze aspects of the students’ data so as to recognize the most important factors leading to high dropout rates. Machine learning techniques can effectively facilitate determination of at-risk students and timely planning for interventions. I will implement several classification algorithms to find the best predictor.
+
+## Data set and features
+The data was gathered from New Jersey City University undergraduate student from 2012 to 2017. The data set contains three types of data: 
+
+Student Static Data: Static data include demographic and educational background information about each student in the cohort; these data do not change over time. These data are collected through a CSV file, uploaded once for each student. This file contains one record per student, and each student appears in only one static file, corresponding to the year in which he/she first enrolled.
+
+Student Progress Data: Progress/General data reflect your students’ academic progression and outcomes over time. These data are CSV files to be uploaded, reflecting each student’s activity for each term in each academic year. This file contains one record per student. Multiple cohorts are included in each term file.
+
+Student Financial Aid Data: Financial Aid Data was collected for each student for each academic year, and it is stored in different columns for different years. It contains Financial Aid and other related information such as scholarships, loans, gross income.
+
+The student data used includes more than 70 features that related to the academic processes and socioeconomic information of the students. The target feature is a 0 or 1 indicating dropouts.
+
+The first step was to import and clean the data, in order to determine that there is no information redundancy and blank fields or data that may affect the prediction process. 
+
+# Import Data
+
+```{r Import Data}
+# Import Student Static Data
+getwd()
+setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Student Static Data")
+StaticFall2011 <- read.csv("Fall 2011_ST.csv", header = T)
+StaticFall2012 <- read.csv("Fall 2012.csv", header = T)
+StaticFall2013 <- read.csv("Fall 2013.csv", header = T)
+StaticFall2014 <- read.csv("Fall 2014.csv", header = T)
+StaticFall2015 <- read.csv("Fall 2015.csv", header = T)
+StaticFall2016 <- read.csv("Fall 2016.csv", header = T)
+StaticSpring2012 <- read.csv("Spring 2012_ST.csv", header = T)
+StaticSpring2013 <- read.csv("Spring 2013.csv", header = T)
+StaticSpring2014 <- read.csv("Spring 2014.csv", header = T)
+StaticSpring2015 <- read.csv("Spring 2015.csv", header = T)
+StaticSpring2016 <- read.csv("Spring 2016.csv", header = T)
+StudentStaticData <- rbind(StaticFall2011,StaticFall2012,StaticFall2013,StaticFall2014,StaticFall2015,StaticFall2016,StaticSpring2012,StaticSpring2013,StaticSpring2014,StaticSpring2015,StaticSpring2016)
+
+# Remove unused data
+rm(StaticFall2011, StaticFall2012, StaticFall2013, StaticFall2014, StaticFall2015, StaticFall2016, StaticSpring2012, StaticSpring2013, StaticSpring2014, StaticSpring2015, StaticSpring2016)
+gc()
+
+# Import Student Progress Data
+getwd()
+setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Student Progress Data")
+ProgressFall2011 <- read.csv("Fall 2011_SP.csv",header = T)
+ProgressFall2012 <- read.csv("Fall 2012_SP.csv",header = T)
+ProgressFall2013 <- read.csv("Fall 2013_SP.csv",header = T)
+ProgressFall2014 <- read.csv("Fall 2014_SP.csv",header = T)
+ProgressFall2015 <- read.csv("Fall 2015_SP.csv",header = T)
+ProgressFall2016 <- read.csv("Fall 2016_SP.csv",header = T)
+ProgressSpring2012 <- read.csv("Spring 2012_SP.csv",header = T)
+ProgressSpring2013 <- read.csv("Spring 2013_SP.csv",header = T)
+ProgressSpring2014 <- read.csv("Spring 2014_SP.csv",header = T)
+ProgressSpring2015 <- read.csv("Spring 2015_SP.csv",header = T)
+ProgressSpring2016 <- read.csv("Spring 2016_SP.csv",header = T)
+ProgressSpring2017 <- read.csv("Spring 2017_SP.csv",header = T)
+ProgressSum2012 <- read.csv("Sum 2012.csv",header = T)
+ProgressSum2013 <- read.csv("Sum 2013.csv",header = T)
+ProgressSum2014 <- read.csv("Sum 2014.csv",header = T)
+ProgressSum2015 <- read.csv("Sum 2015.csv",header = T)
+ProgressSum2016 <- read.csv("Sum 2016.csv",header = T)
+ProgressSum2017 <- read.csv("Sum 2017.csv",header = T)
+
+#Create new column AcademicYearID
+ProgressFall2011 <- mutate(ProgressFall2011, AcademicYearID = 1)
+ProgressSpring2012 <- mutate(ProgressSpring2012, AcademicYearID = 2)
+ProgressSum2012 <- mutate(ProgressSum2012, AcademicYearID = 3)
+ProgressFall2012 <- mutate(ProgressFall2012, AcademicYearID = 4)
+ProgressSpring2013 <- mutate(ProgressSpring2013, AcademicYearID = 5)
+ProgressSum2013 <- mutate(ProgressSum2013, AcademicYearID = 6)
+ProgressFall2013 <- mutate(ProgressFall2013, AcademicYearID = 7)
+ProgressSpring2014 <- mutate(ProgressSpring2014, AcademicYearID = 8)
+ProgressSum2014 <- mutate(ProgressSum2014, AcademicYearID = 9)
+ProgressFall2014 <- mutate(ProgressFall2014, AcademicYearID = 10)
+ProgressSpring2015 <- mutate(ProgressSpring2015, AcademicYearID = 11)
+ProgressSum2015 <- mutate(ProgressSum2015, AcademicYearID = 12)
+ProgressFall2015 <- mutate(ProgressFall2015, AcademicYearID = 13)
+ProgressSpring2016 <- mutate(ProgressSpring2016, AcademicYearID = 14)
+ProgressSum2016 <- mutate(ProgressSum2016, AcademicYearID = 15)
+ProgressFall2016 <- mutate(ProgressFall2016, AcademicYearID = 16)
+ProgressSpring2017 <- mutate(ProgressSpring2017, AcademicYearID = 17)
+ProgressSum2017 <- mutate(ProgressSum2017, AcademicYearID = 18)
+
+StudentProgressData1 <- rbind(ProgressFall2011, ProgressFall2012, ProgressFall2013, ProgressFall2014, ProgressFall2015, ProgressFall2016,ProgressSpring2012,ProgressSpring2013, ProgressSpring2014, ProgressSpring2015, ProgressSpring2016,ProgressSpring2017, ProgressSum2012, ProgressSum2013, ProgressSum2014, ProgressSum2015, ProgressSum2016, ProgressSum2017)
+
+ProgressData <- StudentProgressData1 %>% group_by(StudentID) %>% top_n(1, AcademicYearID)
+
+#Remove unused data
+rm(StudentProgressData1)
+rm(ProgressFall2011, ProgressFall2012, ProgressFall2013, ProgressFall2014, ProgressFall2015, ProgressFall2016, ProgressSpring2012, ProgressSpring2013, ProgressSpring2014, ProgressSpring2015, ProgressSpring2016, ProgressSpring2017, ProgressSum2012, ProgressSum2013, ProgressSum2014, ProgressSum2015, ProgressSum2016, ProgressSum2017)
+gc()
+
+# Import Student Financial Aid Data
+getwd()
+setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Student Financial Aid Data")
+FinancialAid <- read.csv("2011-2017_Cohorts_Financial_Aid_and_Fafsa_Data.csv",header = T)
+
+# Import Dropout Train Labels
+getwd()
+setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout")
+TrainLabels <- read.csv("DropoutTrainLabels.csv",header = T)
+
+# Import Test Data
+getwd()
+setwd("/Users/Diem My/Desktop/THI NGUYEN/HOC MY/FALL 2021/Machine Learning 1/Final Project/studentdropout/Student Retention Challenge Data/Test Data")
+TestData <- read.csv("TestIDs.csv",header = T)
+
+```
+# Exploratory Data Analysis - EDA
+# Student Static Data
+Basic descriptive statistics of the variables in the Student Static Data
+
+```{r Static EDA}
+summary(StudentStaticData)
+```
+
+```{r Static plot}
+#Distribution of Cohort
+bar1 <- ggplot(data=StudentStaticData, aes(x=Cohort)) + geom_bar(color="red", fill=rgb(0,0,1,0.7))
+bar1
+
+#Distribution of Gender, most students were female
+bar2 <- ggplot(data=StudentStaticData, aes(x=Gender)) + geom_bar(color="red", fill=rgb(0,0,1,0.7))
+bar2
+
+```
+
+# Student Progress Data
+Basic descriptive statistics of the variables in the Student Progress Data
+
+```{r Progress EDA}
+summary(ProgressData)
+```
+
+```{r Progress plot}
+#Distribution of Academic Year, most students were in the year 2016-2017
+bar3 <- ggplot(data=ProgressData, aes(x=AcademicYear)) + geom_bar(color="red", fill=rgb(0,0,1,0.7))
+bar3
+
+#Distribution of Complete1 (Highest award received by the student during the current term), most value = 0 mean that no award was conferred.
+bar4 <- ggplot(data=ProgressData, aes(x=Complete1)) + geom_bar(color="red", fill=rgb(0,0,1,0.7))
+bar4
+
+```
+
+# Student Financial Aid Data
+Basic descriptive statistics of the variables in the Student Financial Aid Data
+
+```{r Financial Aid EDA}
+summary(FinancialAid)
+```
+
+```{r Financial Aid plot}
+#Distribution of Housing, most students were living out of campus
+bar5 <- ggplot(data=FinancialAid, aes(x=Housing)) + geom_bar(color="red", fill=rgb(0,0,1,0.7))
+bar5
+
+#Distribution of Mairital Status, most students were single
+bar6 <- ggplot(data=FinancialAid, aes(x=MaritalStatus)) + geom_bar(color="red", fill=rgb(0,0,1,0.7))
+bar6
+
+```
+
+# Data Cleaning
+
+# Data cleaning for Student Static Data
+```{r static cleaning}
+#Remove address columns because we won't use them for training and testing data: Address1, Address2,	City,	State,	Zip,	RegistrationDate
+#Remove columns because of missing most values: Campus, HSDipYr HSGPAWtd, FirstGen, DualHSSummerEnroll, CumLoanAtEntry,   
+StudentStatic <- StudentStaticData[-c(4, 5, 6, 7, 8, 9, 10, 22, 24, 25, 26, 30)]
+#Replace value = -1 in Hispanic,	AmericanIndian,	Asian,	Black,	NativeHawaiian,	White,	TwoOrMoreRace = 0
+StudentStatic["Hispanic"][StudentStatic["Hispanic"] == -1] <- 0
+StudentStatic["AmericanIndian"][StudentStatic["AmericanIndian"] == -1] <- 0
+StudentStatic["Asian"][StudentStatic["Asian"] == -1] <- 0
+StudentStatic["Black"][StudentStatic["Black"] == -1] <- 0
+StudentStatic["NativeHawaiian"][StudentStatic["NativeHawaiian"] == -1] <- 0
+StudentStatic["White"][StudentStatic["White"] == -1] <- 0
+StudentStatic["TwoOrMoreRace"][StudentStatic["TwoOrMoreRace"] == -1] <- 0
+#Replace value = -1 in HSDip = 1 because all students completed high school before applying for college
+StudentStatic["HSDip"][StudentStatic["HSDip"] == -1] <- 0
+#Replace values = -1 in HSGPAUnwtd = mean
+StudentStatic["HSGPAUnwtd"][StudentStatic["HSGPAUnwtd"] == -1] <- mean(StudentStatic$HSGPAUnwtd>0)
+#Replace missing values = -1, -2 in NumColCredAttemptTransfer = 0
+StudentStatic["NumColCredAttemptTransfer"][StudentStatic["NumColCredAttemptTransfer"] == -1] <- 0
+StudentStatic["NumColCredAttemptTransfer"][StudentStatic["NumColCredAttemptTransfer"] == -2] <- 0
+#Replace missing values = -1, -2 in NumColCredAcceptTransfer = 0
+StudentStatic["NumColCredAcceptTransfer"][StudentStatic["NumColCredAcceptTransfer"] == -1] <- 0
+StudentStatic["NumColCredAcceptTransfer"][StudentStatic["NumColCredAcceptTransfer"] == -2] <- 0
+#Replace missing values = -1 in MathPlacement column by majority value = 0 
+StudentStatic["MathPlacement"][StudentStatic["MathPlacement"] == -1] <- 0
+#Replace missing values = -1 in EngPlacement column by majority value = 0 
+StudentStatic["EngPlacement"][StudentStatic["EngPlacement"] == -1] <- 0
+
+```
+# Data cleaning for Student Progress Data
+```{r progress cleaning}
+# Data cleaning for Student Progress Data
+#Remove columns because missing data: Complete2,CompleteCIP2,TransferIntent,DegreeTypeSought,AcademicYearID
+Progress <- ProgressData[-c(11, 13, 14, 15, 18)]
+#Replace missing values = -1, -2 in CompleteDevMath = 0
+Progress["CompleteDevMath"][Progress["CompleteDevMath"] == -1] <- 0
+Progress["CompleteDevMath"][Progress["CompleteDevMath"] == -2] <- 0
+#Replace missing values = -1, -2 in CompleteDevEnglish = 0
+Progress["CompleteDevEnglish"][Progress["CompleteDevEnglish"] == -1] <- 0
+Progress["CompleteDevEnglish"][Progress["CompleteDevEnglish"] == -2] <- 0
+#Replace missing values = -1 in Major1 = 0
+Progress["Major1"][Progress["Major1"] == -1] <- 0
+#Replace missing values = -1 in Major2 = 0
+Progress["Major2"][Progress["Major2"] == -1] <- 0
+#Replace missing values = -2 in CompleteCIP1 = 0
+Progress["CompleteCIP1"][Progress["CompleteCIP1"] == -2] <- 0
+```
+# Data cleaning for Financial Aid Data
+```{r clean Financial Aid Data}
+# Data cleaning for Financial Aid Data
+# Most of students are single, so fill the empty values of Marital Status column with Single.
+FinancialAid["MaritalStatus"][FinancialAid["MaritalStatus"] == ""] <- "Single"
+# Most of students live Off campus, so fill the empty values of Housing column with Off Campus.
+FinancialAid["Housing"][FinancialAid["Housing"] == ""] <- "Off Campus"
+# Fill the empty values of parent's Highest Grade level with 'Unknown'.
+FinancialAid["FathersHighestGradeLevel"][FinancialAid["FathersHighestGradeLevel"] == ""] <- "Unknown"
+FinancialAid["MotherHighestGradeLevel"][FinancialAid["MotherHighestGradeLevel"] == ""] <- "Unknown"
+# Replace all other missing values by 0
+FinancialAid <- na_replace(FinancialAid, 0)
+
+```
+
+# Merge Static Data, Progress Data, Fiancial Data
+```{r merge data}
+StaticProgressData <- merge(x=StudentStatic,y=Progress,by="StudentID")
+FinancialStaticProgressData <- merge(x=StaticProgressData,y=FinancialAid, by="StudentID")
+# Merge FinancailStaticProgressData with TrainLabels Data
+StaticProgressData_Train <- merge(x=FinancialStaticProgressData,y=TrainLabels,by="StudentID")
+DataTrain <- StaticProgressData_Train[-c(2, 3, 4, 24, 25)]
+DataTrain$Dropout <- as.factor(DataTrain$Dropout)
+head(DataTrain)
+rm(StaticProgressData_Train)
+gc()
+
+```
+## Methodology and Results
+The data set was split in 75% train and 25% test, training the models using
+grid search and cross-validation on the training set and evaluating them on the test set.
+
+```{r train}
+library(caret)
+intrain <- createDataPartition(DataTrain$Dropout,p=0.75,list = FALSE)
+head(intrain)
+train1 <- DataTrain[intrain,]
+head(train1)
+test1 <- DataTrain[-intrain,]
+head(test1)
+#Create cross validation
+trctrl <- trainControl(method = "cv", number = 5)
+```
+
+# Fit the classification tree model
+```{r Classification tree}
+model1 <- train(Dropout ~., data = train1, method = "rpart", trControl=trctrl)
+predictions1 <- predict(model1, newdata = test1)
+confusionMatrix(predictions1,test1$Dropout)
+bagImp1 <- varImp(model1, scale=TRUE)
+bagImp1
+```
+# Fit the Logistic Regression Model
+```{r Logistic Regression}
+model2 <- train(Dropout ~., data = train1, method = "glm", trControl=trctrl)
+predictions2 <- predict(model2, newdata = test1)
+confusionMatrix(predictions2,test1$Dropout)
+bagImp2 <- varImp(model2, scale=TRUE)
+bagImp2
+```
+# Fit the Bagging Model
+```{r Bagging}
+model3 <- train(Dropout ~., data = train1, method = "treebag", trControl=trctrl)
+predictions3 <- predict(model3, newdata = test1)
+confusionMatrix(predictions3,test1$Dropout)
+bagImp3 <- varImp(model3, scale=TRUE)
+bagImp3
+```
+# Fit the SVM Radial Model
+```{r SVM Raidal}
+model4 <- train(Dropout ~., data = train1, method = "svmRadial", trControl=trctrl)
+predictions4 <- predict(model4, newdata = test1)
+confusionMatrix(predictions4,test1$Dropout)
+```
+
+# Stacking using Random Forest
+```{r Random Forest}
+# Construct data frame with predictions
+library(caret)
+predDF <- data.frame(predictions1, predictions2, predictions3, predictions4, class = test1$Dropout)
+predDF$class <- as.factor(predDF$class)
+#Combine models using random forest
+combModFit.rf <- train(class ~ ., method = "rf", data = predDF, distribution = 'multinomial')
+combPred.rf <- predict(combModFit.rf, predDF)
+confusionMatrix(combPred.rf, predDF$class)$overall[1]
+```
+# Compare the accuracy of each model
+Evaluation Metrics
+The performance of the classifiers is assessed using the standard measure of accuracy.
+
+Model	                        Accuracy Score
+Classification tree           95.79%
+Logistic Regression           95.46%
+Bagging                       96.31%
+SVM Radial                    95.54%
+Stacking with Random Forest   96.31%
+
+Bagging and Stacking model have the higher accuracy score than the others.
+#ROC Curve
+```{r ROC Curve}
+library(pROC)
+# ROC Curve
+roccurve1 <- roc(test1$Dropout ~ as.numeric(predictions1))
+roccurve2 <- roc(test1$Dropout ~ as.numeric(predictions2))
+roccurve3 <- roc(test1$Dropout ~ as.numeric(predictions3))
+roccurve4 <- roc(test1$Dropout ~ as.numeric(predictions4))
+roccurve <- roc(predDF$class ~ as.numeric(combPred.rf))
+roccurve$auc
+roccurve$sensitivities
+roccurve$specificities
+plot(roccurve1, print.auc = TRUE, col = "red",print.auc.y = .4, lwd =4,legacy.axes=TRUE,main="ROC Curves")
+plot(roccurve2, print.auc = TRUE, col = "black", print.auc.y = .5, add = TRUE, lwd =4,legacy.axes=TRUE,main="ROC Curves")
+plot(roccurve3, print.auc = TRUE, col = "blue", print.auc.y = .6, add = TRUE, lwd =4,legacy.axes=TRUE,main="ROC Curves")
+plot(roccurve4, print.auc = TRUE, col = "green", print.auc.y = .7, add = TRUE, lwd =4,legacy.axes=TRUE,main="ROC Curves")
+plot(roccurve, print.auc = TRUE, col = "orange", print.auc.y = .8, add = TRUE,lwd =4,legacy.axes=TRUE,main="ROC Curves")
+```
+The plot presents the ROC curves for the fine binary classifiers used in this study. The the bagging model, and Stacking model using Random Forest performed the same AUC and better than the Classification Tree, Logistic Regression and SVM.
+
+#Results on TESTIDs data
+```{r results}
+DatatestIDs <- merge(x = TestData, y = FinancialStaticProgressData,by = "StudentID")
+predictions1 <- predict(model1, newdata = DatatestIDs)
+predictions2 <- predict(model2, newdata = DatatestIDs)
+predictions3 <- predict(model3, newdata = DatatestIDs)
+predictions4 <- predict(model4, newdata = DatatestIDs)
+
+test_predDF <- data.frame(predictions1, predictions2, predictions3, predictions4)
+test_combPred.rf <- predict(combModFit.rf,newdata = test_predDF)
+submitfile <- data.frame(DatatestIDs$StudentID, test_combPred.rf)
+colnames(submitfile) <- c("StudentID", "Dropout")
+
+getwd()
+write.csv(submitfile,file = 'SubmissionFile9.csv')
+```
+##Conclusion and Future Works
+#Conclusion
+By this project, I have presented many machine learning models to predict NeW Jersey City student dropout. We see that these models achieves high predicive power, combining values of AUC ROC for decision-making with capable of achieving with precision over 96% in its predictions.
+Student drop out prediction is very important for colleges. In this paper, I attempted to evaluated the effectiveness of several classification techniques in student dropout prediction. The result was that the Bagging and Stacking with Random Forest performed the best, followed by the Classification Tree, Logistic Regression and SVM.
+#Limitations
+Some improvements that can be made to the experiment include a more advanced solution dealing with missing values rather than replacing missing values to 0 or the majority value. For great quality to be achieved, this means there should be no missing or wrong data points in the dataset, as well as consistent and useable formatting of the data.
+Developing such a model demands analytics and coding skills. These two skills, even if required, are not enough: having subject-matter experts providing input on the industry practices and interpreting results and data is crucial to the success.
+#Future works
+In this study, I limited our scope to New Jersey City students, but the same models developed for this purpose could be used for colleges, given that the models are trained and supplied with the appropriate data. Consequently, the relevant factors we have identified as impact for predicting on dropout students in these models are relevant for any other college's students.
